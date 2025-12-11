@@ -3,7 +3,7 @@
 
 """A simple test package for PyPI cleanup testing."""
 
-__version__ = "0.1.1.dev1"
+__version__ = "0.2.1.dev1"
 
 
 def hello():

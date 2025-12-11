@@ -12,8 +12,8 @@ if [ -z "$PYPI_API_TOKEN" ]; then
     exit 1
 fi
 
-# Versions to upload
-VERSIONS=("0.1.0.dev1" "0.1.0.dev2" "0.1.0.dev3" "0.1.0" "0.1.1.dev1" "0.1.1.dev2")
+# Versions to upload (bumped to avoid conflicts)
+VERSIONS=("0.2.0.dev1" "0.2.0.dev2" "0.2.0.dev3" "0.2.0" "0.2.1.dev1" "0.2.1.dev2")
 
 for version in "${VERSIONS[@]}"; do
     echo ""

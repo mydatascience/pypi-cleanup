@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="fleandr-test-package",
-    version="0.1.1.dev1",
+    version="0.2.1.dev1",
     description="Test package for PyPI cleanup utility",
     author="fleandr",
     author_email="fleandr@example.com",

@@ -12,12 +12,12 @@ export PYTHONPATH="$(dirname "$0")/src/main/python"
 # Password can be set via PYPI_CLEANUP_PASSWORD environment variable (or will prompt)
 # TOTP secret can be set via PYPI_CLEANUP_TOTP_SECRET environment variable
 
-# Build command with username if provided
-CMD="python \"$(dirname \"$0\")/src/main/python/pypi_cleanup/__init__.py\""
+# Build command array
+CMD_ARGS=("python" "$(dirname "$0")/src/main/python/pypi_cleanup/__init__.py")
 if [ -n "$PYPI_CLEANUP_USERNAME" ]; then
-    CMD="$CMD -u \"$PYPI_CLEANUP_USERNAME\""
+    CMD_ARGS+=("-u" "$PYPI_CLEANUP_USERNAME")
 fi
 
 # Pass through all arguments
-eval "$CMD \"\$@\""
+"${CMD_ARGS[@]}" "$@"
 
