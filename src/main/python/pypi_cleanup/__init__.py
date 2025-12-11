@@ -31,6 +31,12 @@ import requests
 from requests.__version__ import __version__ as requests_version
 from requests.exceptions import RequestException
 
+try:
+    import pyotp
+    PYOTP_AVAILABLE = True
+except ImportError:
+    PYOTP_AVAILABLE = False
+
 from pypi_cleanup.__version__ import __version__
 
 DEFAULT_PATTERNS = [re.compile(r".*\.dev\d+$")]
@@ -249,7 +255,17 @@ class PypiCleanup:
                     two_factor_url = r.url
 
             if two_factor:
-                auth_code = input("Authentication code: ")
+                # Check for TOTP secret in environment variable
+                totp_secret = os.getenv("PYPI_CLEANUP_TOTP_SECRET")
+                if totp_secret and PYOTP_AVAILABLE:
+                    totp = pyotp.TOTP(totp_secret)
+                    auth_code = totp.now()
+                    logging.info(f"Generated TOTP code programmatically")
+                else:
+                    if not PYOTP_AVAILABLE:
+                        logging.warning("pyotp not available. Install it with: pip install pyotp")
+                    auth_code = input("Authentication code: ")
+                
                 with s.post(two_factor_url, data={"csrf_token": csrf,
                                                   "method": "totp",
                                                   "totp_value": auth_code},
@@ -272,11 +288,31 @@ class PypiCleanup:
                         form_url = f"{self.url}{form_action}"
                         with s.get(form_url) as r:
                             r.raise_for_status()
+                            # Check if we were redirected (might indicate permission issue or version already deleted)
+                            if r.url != form_url and not r.url.startswith(f"{self.url}/manage/project/"):
+                                logging.error(f"Unexpected redirect when accessing {form_url}: {r.url}")
+                                logging.error("This might indicate the version was already deleted or you don't have permission")
+                                return 1
+                            
                             parser = CsfrParser(form_action, "confirm_delete_version")
                             parser.feed(r.text)
                             if not parser.csrf:
-                                raise ValueError(f"No CSFR found in {form_action}")
-                            csrf = parser.csrf
+                                # Try to find CSRF token in any form on the page as fallback
+                                fallback_parser = CsfrParser("")
+                                fallback_parser.feed(r.text)
+                                if fallback_parser.csrf:
+                                    csrf = fallback_parser.csrf
+                                    logging.warning(f"Found CSRF token but form action matching failed for {form_action}")
+                                else:
+                                    logging.error(f"No CSRF token found in page. Response URL: {r.url}")
+                                    logging.error("Possible reasons:")
+                                    logging.error("  - Version already deleted")
+                                    logging.error("  - Insufficient permissions")
+                                    logging.error("  - PyPI page structure changed")
+                                    logging.debug(f"Page content preview: {r.text[:500]}")
+                                    raise ValueError(f"No CSRF token found in {form_action}. Check if version exists and you have permission.")
+                            else:
+                                csrf = parser.csrf
                             referer = r.url
 
                         with s.post(form_url,

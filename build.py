@@ -49,6 +49,7 @@ default_task = ["analyze", "publish"]
 @init
 def set_properties(project):
     project.depends_on("requests", "~=2.23")
+    project.depends_on_optional("pyotp", ">=2.0")
     project.set_property("verbose", True)
 
     project.set_property("coverage_break_build", False)
